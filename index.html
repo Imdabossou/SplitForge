@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SplitForge — STL Split & Connector Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f14;
+  --bg2: #13161e;
+  --bg3: #1a1e2a;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --accent: #4df5c4;
+  --accent2: #f5a84d;
+  --accent3: #a84df5;
+  --text: #e8eaf0;
+  --text2: #8a8fa8;
+  --text3: #555a70;
+  --danger: #f5654d;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:13px;overflow:hidden}
+
+/* Layout */
+#shell{display:grid;grid-template-rows:48px 1fr;height:100vh}
+#header{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:16px;background:var(--bg2)}
+#header h1{font-family:var(--font-display);font-size:18px;font-weight:800;letter-spacing:-0.03em;color:var(--accent)}
+#header h1 span{color:var(--text2)}
+.header-badge{font-size:10px;padding:2px 8px;border-radius:3px;background:rgba(77,245,196,0.12);color:var(--accent);border:1px solid rgba(77,245,196,0.25);font-family:var(--font-mono);letter-spacing:0.08em}
+.header-spacer{flex:1}
+.header-btn{padding:6px 14px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font-mono);font-size:12px;transition:all 0.15s}
+.header-btn:hover{border-color:var(--accent);color:var(--accent)}
+.header-btn.primary{background:rgba(77,245,196,0.1);border-color:var(--accent);color:var(--accent)}
+
+#main{display:grid;grid-template-columns:280px 1fr 300px;overflow:hidden}
+#left-panel{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+#viewport{position:relative;background:var(--bg);overflow:hidden}
+#right-panel{background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+
+/* Panels */
+.panel-section{border-bottom:1px solid var(--border);padding:14px}
+.section-label{font-size:10px;font-weight:600;letter-spacing:0.12em;color:var(--text3);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Controls */
+.ctrl-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.ctrl-label{font-size:11px;color:var(--text2);min-width:50px}
+.ctrl-val{font-size:11px;color:var(--accent);min-width:42px;text-align:right;font-weight:600}
+input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:2px;background:var(--bg3);border-radius:1px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg)}
+input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 0 3px rgba(77,245,196,0.2)}
+.btn-group{display:flex;gap:4px;margin-bottom:8px}
+.seg-btn{flex:1;padding:5px 4px;font-family:var(--font-mono);font-size:11px;border:1px solid var(--border2);background:transparent;color:var(--text2);border-radius:3px;cursor:pointer;transition:all 0.12s;text-align:center}
+.seg-btn:hover{border-color:var(--border2);color:var(--text)}
+.seg-btn.on{background:rgba(77,245,196,0.12);border-color:rgba(77,245,196,0.5);color:var(--accent)}
+.seg-btn.warn.on{background:rgba(245,168,77,0.12);border-color:rgba(245,168,77,0.5);color:var(--accent2)}
+
+/* Upload drop zone */
+#dropzone{margin:14px;border:1px dashed var(--border2);border-radius:6px;padding:24px 16px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative}
+#dropzone:hover,#dropzone.drag-over{border-color:var(--accent);background:rgba(77,245,196,0.04)}
+#dropzone .dz-icon{font-size:28px;margin-bottom:8px;opacity:0.4}
+#dropzone .dz-text{color:var(--text2);font-size:11px;line-height:1.6}
+#dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+#model-info{padding:10px 14px;background:rgba(77,245,196,0.06);border-bottom:1px solid var(--border);display:none}
+#model-info .mi-name{font-size:12px;color:var(--accent);font-weight:600;margin-bottom:4px}
+#model-info .mi-stats{font-size:10px;color:var(--text2);line-height:1.7}
+
+/* Canvas */
+#cv{display:block;width:100%;height:100%}
+#viewport-overlay{position:absolute;bottom:12px;left:12px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.vp-hint{font-size:10px;color:rgba(255,255,255,0.3);background:rgba(0,0,0,0.5);padding:4px 8px;border-radius:3px}
+#axis-indicator{position:absolute;top:12px;left:12px;width:60px;height:60px;pointer-events:none}
+
+/* Connector list */
+.conn-item{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 10px;margin-bottom:5px;display:grid;grid-template-columns:20px 1fr auto;align-items:center;gap:8px}
+.conn-num{font-size:10px;color:var(--text3);font-weight:600}
+.conn-pos{font-size:10px;color:var(--text2);line-height:1.5}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px rgba(77,245,196,0.6)}
+.empty-msg{font-size:11px;color:var(--text3);text-align:center;padding:16px 0;line-height:1.6}
+
+/* Export panel */
+.export-btn{width:100%;padding:8px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font-mono);font-size:11px;margin-bottom:5px;text-align:left;transition:all 0.12s;display:flex;align-items:center;gap:8px}
+.export-btn:hover{border-color:var(--border2);background:var(--bg3);color:var(--text)}
+.export-btn .ebtn-icon{font-size:14px}
+.export-btn.featured{border-color:rgba(77,245,196,0.4);color:var(--accent);background:rgba(77,245,196,0.05)}
+.export-btn.featured:hover{background:rgba(77,245,196,0.1)}
+
+/* Status bar */
+#statusbar{position:absolute;bottom:0;left:0;right:0;height:24px;background:rgba(0,0,0,0.7);display:flex;align-items:center;padding:0 12px;gap:16px;font-size:10px;color:var(--text3);border-top:1px solid var(--border);pointer-events:none}
+#statusbar .sb-item{display:flex;align-items:center;gap:5px}
+#statusbar .sb-val{color:var(--text2)}
+#progress{position:absolute;inset:0;background:rgba(13,15,20,0.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:100}
+#progress .pg-text{font-size:13px;color:var(--text2)}
+#progress .pg-bar-wrap{width:240px;height:3px;background:var(--bg3);border-radius:2px}
+#progress .pg-bar{height:3px;background:var(--accent);border-radius:2px;width:0%;transition:width 0.2s}
+.tab-row{display:flex;border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:9px 8px;font-size:11px;color:var(--text3);text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.12s;font-family:var(--font-mono)}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none;flex:1;flex-direction:column;overflow-y:auto}
+.tab-content.active{display:flex}
+
+/* Tooltip */
+.tooltip{position:absolute;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;font-size:11px;color:var(--text);pointer-events:none;z-index:50;max-width:180px;line-height:1.5}
+</style>
+</head>
+<body>
+<div id="shell">
+  <div id="header">
+    <h1>Split<span>Forge</span></h1>
+    <span class="header-badge">BETA</span>
+    <div class="header-spacer"></div>
+    <button class="header-btn" onclick="resetView()">Reset view</button>
+    <button class="header-btn primary" onclick="runExportAll()">Export all ↗</button>
+  </div>
+  <div id="main">
+
+    <!-- LEFT PANEL -->
+    <div id="left-panel">
+      <div id="dropzone" onclick="document.getElementById('file-input').click()">
+        <div class="dz-icon">⬡</div>
+        <div class="dz-text">Drop STL file here<br>or click to browse</div>
+        <input type="file" id="file-input" accept=".stl" onchange="loadSTLFile(this)">
+      </div>
+      <div id="model-info">
+        <div class="mi-name" id="mi-name">—</div>
+        <div class="mi-stats" id="mi-stats"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-label">Split plane</div>
+        <div class="btn-group">
+          <div class="seg-btn warn on" id="ax-x" onclick="setAxis('x')">X axis</div>
+          <div class="seg-btn warn" id="ax-y" onclick="setAxis('y')">Y axis</div>
+          <div class="seg-btn warn" id="ax-z" onclick="setAxis('z')">Z axis</div>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">Position</span>
+          <input type="range" id="sp" min="1" max="99" value="50" oninput="onCtrl()">
+          <span class="ctrl-val" id="sp-v">50%</span>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px" id="split-abs-pos">Split at: —</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-label">Connector geometry</div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">Diameter</span>
+          <input type="range" id="cs" min="1" max="15" value="5" step="0.5" oninput="onCtrl()">
+          <span class="ctrl-val" id="cs-v">5mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">Depth</span>
+          <input type="range" id="cd" min="1" max="12" value="3" step="0.5" oninput="onCtrl()">
+          <span class="ctrl-val" id="cd-v">3mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">Wall inset</span>
+          <input type="range" id="ci" min="1" max="20" value="5" step="0.5" oninput="onCtrl()">
+          <span class="ctrl-val" id="ci-v">5mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">Tolerance</span>
+          <input type="range" id="ct" min="0" max="1" value="0.2" step="0.05" oninput="onCtrl()">
+          <span class="ctrl-val" id="ct-v">0.2mm</span>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-label">Pattern</div>
+        <div class="btn-group">
+          <div class="seg-btn on" id="pt-corners" onclick="setPattern('corners')">Corners</div>
+          <div class="seg-btn" id="pt-mid" onclick="setPattern('mid')">+ Midpoints</div>
+          <div class="seg-btn" id="pt-grid" onclick="setPattern('grid')">Grid</div>
+        </div>
+        <div class="ctrl-row" id="grid-row" style="display:none">
+          <span class="ctrl-label">Grid N</span>
+          <input type="range" id="gn" min="2" max="5" value="2" step="1" oninput="onCtrl()">
+          <span class="ctrl-val" id="gn-v">2×2</span>
+        </div>
+      </div>
+
+      <div class="panel-section" style="flex:1">
+        <div class="section-label">Display</div>
+        <div class="btn-group">
+          <div class="seg-btn on" id="dv-solid" onclick="setDisplayMode('solid')">Solid</div>
+          <div class="seg-btn" id="dv-wire" onclick="setDisplayMode('wire')">Wire</div>
+          <div class="seg-btn" id="dv-xray" onclick="setDisplayMode('xray')">X-ray</div>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">Opacity</span>
+          <input type="range" id="op" min="10" max="100" value="75" oninput="onCtrl()">
+          <span class="ctrl-val" id="op-v">75%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEWPORT -->
+    <div id="viewport">
+      <canvas id="cv"></canvas>
+      <canvas id="axis-indicator"></canvas>
+      <div id="viewport-overlay">
+        <div class="vp-hint">Left drag: rotate  |  Right drag / scroll: zoom  |  Middle drag: pan</div>
+      </div>
+      <div id="statusbar">
+        <div class="sb-item">Triangles: <span class="sb-val" id="sb-tris">—</span></div>
+        <div class="sb-item">Bounds: <span class="sb-val" id="sb-bounds">—</span></div>
+        <div class="sb-item">Connectors: <span class="sb-val" id="sb-conns">0</span></div>
+        <div class="sb-item">Split: <span class="sb-val" id="sb-split">—</span></div>
+      </div>
+      <div id="progress">
+        <div class="pg-text" id="pg-text">Processing...</div>
+        <div class="pg-bar-wrap"><div class="pg-bar" id="pg-bar"></div></div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div id="right-panel">
+      <div class="tab-row">
+        <div class="tab active" onclick="switchTab('connectors')">Connectors</div>
+        <div class="tab" onclick="switchTab('export')">Export</div>
+        <div class="tab" onclick="switchTab('analysis')">Analysis</div>
+      </div>
+
+      <!-- CONNECTORS TAB -->
+      <div class="tab-content active" id="tab-connectors">
+        <div class="panel-section" style="flex:1">
+          <div class="section-label">Placed connectors</div>
+          <div id="conn-list"><div class="empty-msg">Load an STL or adjust split plane<br>to generate connectors</div></div>
+        </div>
+      </div>
+
+      <!-- EXPORT TAB -->
+      <div class="tab-content" id="tab-export">
+        <div class="panel-section">
+          <div class="section-label">STL export</div>
+          <button class="export-btn featured" onclick="exportSTL('top')"><span class="ebtn-icon">⬡</span>Top part (.stl)</button>
+          <button class="export-btn featured" onclick="exportSTL('bottom')"><span class="ebtn-icon">⬡</span>Bottom part (.stl)</button>
+          <button class="export-btn" onclick="exportSTLBoth()"><span class="ebtn-icon">⬡</span>Both parts (zip)</button>
+        </div>
+        <div class="panel-section">
+          <div class="section-label">OpenSCAD export</div>
+          <button class="export-btn" onclick="exportOpenSCAD()"><span class="ebtn-icon">◈</span>Full assembly (.scad)</button>
+          <button class="export-btn" onclick="exportOpenSCADTop()"><span class="ebtn-icon">◈</span>Top part (.scad)</button>
+          <button class="export-btn" onclick="exportOpenSCADBottom()"><span class="ebtn-icon">◈</span>Bottom part (.scad)</button>
+        </div>
+        <div class="panel-section">
+          <div class="section-label">Data export</div>
+          <button class="export-btn" onclick="exportJSON()"><span class="ebtn-icon">{ }</span>Connector positions (JSON)</button>
+          <button class="export-btn" onclick="exportCSV()"><span class="ebtn-icon">≡</span>Connector positions (CSV)</button>
+        </div>
+        <div class="panel-section" style="flex:1">
+          <div class="section-label">Preview</div>
+          <pre id="export-preview" style="font-size:10px;color:var(--text2);line-height:1.5;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto">— select an export to preview —</pre>
+        </div>
+      </div>
+
+      <!-- ANALYSIS TAB -->
+      <div class="tab-content" id="tab-analysis">
+        <div class="panel-section">
+          <div class="section-label">Overhang analysis</div>
+          <button class="export-btn" onclick="runOverhangAnalysis()"><span class="ebtn-icon">▲</span>Detect overhangs &gt;45°</button>
+          <div id="overhang-result" class="empty-msg">Run analysis to detect faces<br>requiring internal supports</div>
+        </div>
+        <div class="panel-section" style="flex:1">
+          <div class="section-label">Split quality</div>
+          <div id="split-quality"><div class="empty-msg">Load model to analyse</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="src/stl-parser.js"></script>
+<script src="src/geometry.js"></script>
+<script src="src/renderer.js"></script>
+<script src="src/connectors.js"></script>
+<script src="src/exporters.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
