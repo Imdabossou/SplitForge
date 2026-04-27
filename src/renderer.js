@@ -316,21 +316,21 @@ const Renderer = (() => {
     gl.vertexAttribPointer(aNorm, 3, gl.FLOAT, false, 24, 12);
     gl.drawArrays(gl.TRIANGLES, 0, verts.length / 3);
 
-    drawSplitPlane(bounds, splitT || 0.5, axis || 'y', mvp);
+    drawSplitPlane(bounds, splitT || 0.5, axis || 'z', mvp);
     gl.deleteBuffer(buf);
   }
 
   function drawSplitPlane(bounds, splitT, axis, mvp) {
     let v0,v1,v2,v3;
     const e = 0.5;
-    if(axis==='y'){
-      const y=bounds.minY+bounds.sizeY*splitT;
-      v0=[bounds.minX-e,y,bounds.minZ-e]; v1=[bounds.maxX+e,y,bounds.minZ-e];
-      v2=[bounds.maxX+e,y,bounds.maxZ+e]; v3=[bounds.minX-e,y,bounds.maxZ+e];
-    } else if(axis==='z'){
+    if(axis==='z'){
       const z=bounds.minZ+bounds.sizeZ*splitT;
       v0=[bounds.minX-e,bounds.minY-e,z]; v1=[bounds.maxX+e,bounds.minY-e,z];
       v2=[bounds.maxX+e,bounds.maxY+e,z]; v3=[bounds.minX-e,bounds.maxY+e,z];
+    } else if(axis==='y'){
+      const y=bounds.minY+bounds.sizeY*splitT;
+      v0=[bounds.minX-e,y,bounds.minZ-e]; v1=[bounds.maxX+e,y,bounds.minZ-e];
+      v2=[bounds.maxX+e,y,bounds.maxZ+e]; v3=[bounds.minX-e,y,bounds.maxZ+e];
     } else {
       const x=bounds.minX+bounds.sizeX*splitT;
       v0=[x,bounds.minY-e,bounds.minZ-e]; v1=[x,bounds.maxY+e,bounds.minZ-e];
@@ -363,7 +363,7 @@ const Renderer = (() => {
 
     const app = window.App;
     const splitT = app ? parseFloat(document.getElementById('sp').value)/100 : 0.5;
-    const axis = app ? (app.axis||'y') : 'y';
+    const axis = app ? (app.axis||'z') : 'z';
     const op = opacity;
 
     if (demoBox) {

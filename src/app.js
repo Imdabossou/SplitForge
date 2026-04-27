@@ -5,7 +5,7 @@ const App = (() => {
   let splitData = null;
   let connectors = [];
   let connectorGeo = null;
-  let axis = 'y';
+  let axis = 'z';
   let pattern = 'corners';
   let modelName = null;
   let overhangTris = null;
