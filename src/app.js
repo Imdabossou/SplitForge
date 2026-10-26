@@ -140,7 +140,10 @@ const App = (() => {
     if (fromPct) mm.value = (b.min[a] + b.size[a] * num('cut-pct') / 100).toFixed(2);
     else {
       const v = Math.min(b.max[a], Math.max(b.min[a], num('cut-mm')));
-      if (Number.isFinite(v)) $('cut-pct').value = ((v - b.min[a]) / b.size[a] * 100).toFixed(1);
+      if (Number.isFinite(v)) {
+        mm.value = v.toFixed(2);
+        $('cut-pct').value = ((v - b.min[a]) / b.size[a] * 100).toFixed(1);
+      }
     }
     $('cut-pct-v').textContent = fmt(num('cut-pct')) + '%';
   }
@@ -364,7 +367,7 @@ const App = (() => {
     bindSeg('display', v => { state.display = v; Renderer.setMode(v); });
 
     $('cut-pct').addEventListener('input', () => { syncCutInputs(true); schedule(); });
-    $('cut-mm').addEventListener('change', () => { syncCutInputs(false); syncCutInputs(true); schedule(); });
+    $('cut-mm').addEventListener('change', () => { syncCutInputs(false); schedule(); });
     for (const id of ['grid-n', 'diameter', 'depth', 'clearance', 'margin']) $(id).addEventListener('input', schedule);
     $('explode').addEventListener('input', () => { syncLabels(); applyExplode(); });
     $('opacity').addEventListener('input', () => { syncLabels(); Renderer.setOpacity(num('opacity') / 100); });
