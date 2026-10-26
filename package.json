@@ -1,0 +1,8 @@
+{
+  "name": "splitforge",
+  "private": true,
+  "description": "Split 3D models into printable parts with connectors",
+  "scripts": {
+    "test": "node --test"
+  }
+}

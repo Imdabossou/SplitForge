@@ -3,284 +3,379 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SplitForge — STL Split & Connector Planner</title>
+<title>SplitForge — split STLs with connectors</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l12 7v14l-12 7-12-7V9z' fill='%230b8f72'/%3E%3Cpath d='M4 16h24' stroke='%23fff' stroke-width='2.5' stroke-dasharray='3 2'/%3E%3C/svg%3E">
+<meta name="description" content="Split 3D models into printable parts with pegs, snap-fits or dowels. Runs entirely in your browser.">
+<script>
+  // Apply the saved theme before first paint to avoid a flash of the wrong one.
+  try { const t = localStorage.getItem('splitforge-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0d0f14;
-  --bg2: #13161e;
-  --bg3: #1a1e2a;
-  --border: rgba(255,255,255,0.07);
-  --border2: rgba(255,255,255,0.13);
-  --accent: #4df5c4;
-  --accent2: #f5a84d;
-  --accent3: #a84df5;
-  --text: #e8eaf0;
-  --text2: #8a8fa8;
-  --text3: #555a70;
-  --danger: #f5654d;
-  --font-display: 'Syne', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  color-scheme: light;
+  --bg: #f3f4f7; --bg2: #ffffff; --bg3: #eceef3;
+  --border: rgba(20, 24, 36, 0.09); --border2: rgba(20, 24, 36, 0.18);
+  --accent: #0b8f72; --accent-soft: rgba(11, 143, 114, 0.1); --accent-line: rgba(11, 143, 114, 0.45);
+  --accent2: #b86200; --accent2-soft: rgba(184, 98, 0, 0.1); --accent2-line: rgba(184, 98, 0, 0.45);
+  --text: #1b1e27; --text2: #535a6e; --text3: #858b9e;
+  --danger: #c93a26; --good: #1a8a55;
+  --overlay: rgba(243, 244, 247, 0.85);
+  --vp-bg: #e6e9ef; --part-pos: #3b8ed8; --part-neg: #e08a2c; --plane: #d39b00;
+  --section: #0b8f72; --grid: #6b7285; --overhang: #e5402a;
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:13px;overflow:hidden}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0d0f14; --bg2: #13161e; --bg3: #1a1e2a;
+    --border: rgba(255, 255, 255, 0.07); --border2: rgba(255, 255, 255, 0.14);
+    --accent: #4df5c4; --accent-soft: rgba(77, 245, 196, 0.1); --accent-line: rgba(77, 245, 196, 0.45);
+    --accent2: #f5a84d; --accent2-soft: rgba(245, 168, 77, 0.1); --accent2-line: rgba(245, 168, 77, 0.45);
+    --text: #e8eaf0; --text2: #9297ad; --text3: #5d6278;
+    --danger: #ff6b55; --good: #4df5a0;
+    --overlay: rgba(13, 15, 20, 0.85);
+    --vp-bg: #0d0f14; --part-pos: #4fb3e8; --part-neg: #f0a64d; --plane: #ffc740;
+    --section: #4df5c4; --grid: #8a8fa8; --overhang: #ff4d3a;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d0f14; --bg2: #13161e; --bg3: #1a1e2a;
+  --border: rgba(255, 255, 255, 0.07); --border2: rgba(255, 255, 255, 0.14);
+  --accent: #4df5c4; --accent-soft: rgba(77, 245, 196, 0.1); --accent-line: rgba(77, 245, 196, 0.45);
+  --accent2: #f5a84d; --accent2-soft: rgba(245, 168, 77, 0.1); --accent2-line: rgba(245, 168, 77, 0.45);
+  --text: #e8eaf0; --text2: #9297ad; --text3: #5d6278;
+  --danger: #ff6b55; --good: #4df5a0;
+  --overlay: rgba(13, 15, 20, 0.85);
+  --vp-bg: #0d0f14; --part-pos: #4fb3e8; --part-neg: #f0a64d; --plane: #ffc740;
+  --section: #4df5c4; --grid: #8a8fa8; --overhang: #ff4d3a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 13px; }
+body { overflow: hidden; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Layout */
-#shell{display:grid;grid-template-rows:48px 1fr;height:100vh}
-#header{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:16px;background:var(--bg2)}
-#header h1{font-family:var(--font-display);font-size:18px;font-weight:800;letter-spacing:-0.03em;color:var(--accent)}
-#header h1 span{color:var(--text2)}
-.header-badge{font-size:10px;padding:2px 8px;border-radius:3px;background:rgba(77,245,196,0.12);color:var(--accent);border:1px solid rgba(77,245,196,0.25);font-family:var(--font-mono);letter-spacing:0.08em}
-.header-spacer{flex:1}
-.header-btn{padding:6px 14px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font-mono);font-size:12px;transition:all 0.15s}
-.header-btn:hover{border-color:var(--accent);color:var(--accent)}
-.header-btn.primary{background:rgba(77,245,196,0.1);border-color:var(--accent);color:var(--accent)}
+#shell { display: grid; grid-template-rows: 48px 1fr; grid-template-columns: minmax(0, 1fr); height: 100vh; height: 100dvh; }
+#header { display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid var(--border); gap: 12px; background: var(--bg2); }
+#header h1 { font-family: var(--font-display); font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: var(--accent); }
+#header h1 span { color: var(--text2); }
+.badge { font-size: 10px; padding: 2px 8px; border-radius: 3px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-line); letter-spacing: 0.08em; }
+.spacer { flex: 1; }
+.btn { padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-size: 12px; transition: border-color .15s, color .15s, background .15s; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.btn.small { padding: 4px 10px; font-size: 11px; }
+#theme { width: 168px; margin: 0; }
 
-#main{display:grid;grid-template-columns:320px 1fr 300px;overflow:hidden}
-#left-panel{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
-#viewport{position:relative;background:var(--bg);overflow:hidden}
-#right-panel{background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+#main { display: grid; grid-template-columns: 320px minmax(0, 1fr) 300px; overflow: hidden; min-height: 0; }
+#left-panel, #right-panel { background: var(--bg2); overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
+#left-panel { border-right: 1px solid var(--border); }
+#right-panel { border-left: 1px solid var(--border); }
+#viewport { position: relative; background: var(--vp-bg); overflow: hidden; min-height: 0; }
 
 /* Panels */
-.panel-section{border-bottom:1px solid var(--border);padding:14px}
-.section-label{font-size:10px;font-weight:600;letter-spacing:0.12em;color:var(--text3);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.panel-section { border-bottom: 1px solid var(--border); padding: 14px; }
+.panel-section.grow { flex: 1; }
+.section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--text3); text-transform: uppercase; margin: 2px 0 10px; display: flex; align-items: center; gap: 6px; }
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.hint { font-size: 10.5px; color: var(--text3); line-height: 1.6; margin-top: 6px; }
+.disabled { opacity: 0.4; pointer-events: none; }
 
 /* Controls */
-.ctrl-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.ctrl-label{font-size:11px;color:var(--text2);min-width:70px;white-space:nowrap}
-.ctrl-val{font-size:11px;color:var(--accent);min-width:45px;text-align:right;font-weight:600;white-space:nowrap}
-input[type=range]{flex:1;min-width:0;-webkit-appearance:none;appearance:none;height:2px;background:var(--bg3);border-radius:1px;outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg)}
-input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 0 3px rgba(77,245,196,0.2)}
-.btn-group{display:flex;gap:4px;margin-bottom:8px}
-.seg-btn{flex:1;padding:5px 4px;font-family:var(--font-mono);font-size:11px;border:1px solid var(--border2);background:transparent;color:var(--text2);border-radius:3px;cursor:pointer;transition:all 0.12s;text-align:center}
-.seg-btn:hover{border-color:var(--border2);color:var(--text)}
-.seg-btn.on{background:rgba(77,245,196,0.12);border-color:rgba(77,245,196,0.5);color:var(--accent)}
-.seg-btn.warn.on{background:rgba(245,168,77,0.12);border-color:rgba(245,168,77,0.5);color:var(--accent2)}
+.ctrl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ctrl-label { font-size: 11px; color: var(--text2); min-width: 72px; white-space: nowrap; }
+.ctrl-val { font-size: 11px; color: var(--accent); min-width: 58px; text-align: right; font-weight: 600; white-space: nowrap; }
+input[type=range] { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; height: 18px; background: transparent; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 2px; background: var(--border2); border-radius: 1px; }
+input[type=range]::-moz-range-track { height: 2px; background: var(--border2); border-radius: 1px; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; margin-top: -5.5px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg2); }
+input[type=range]::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg2); }
+input[type=number] { width: 84px; padding: 4px 6px; border: 1px solid var(--border2); border-radius: 3px; background: var(--bg); color: var(--text); font: inherit; font-size: 11px; text-align: right; }
+.seg { display: flex; gap: 4px; margin-bottom: 8px; }
+.seg button { flex: 1; padding: 5px 4px; font-size: 11px; border: 1px solid var(--border2); background: transparent; color: var(--text2); border-radius: 3px; cursor: pointer; transition: all .12s; }
+.seg button:hover { color: var(--text); }
+.seg button.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
+.seg.warm button.on { background: var(--accent2-soft); border-color: var(--accent2-line); color: var(--accent2); }
+.check { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text2); cursor: pointer; margin: 4px 0 10px; line-height: 1.5; }
+.check input { accent-color: var(--accent); }
 
-/* Upload drop zone */
-#dropzone{margin:14px;border:1px dashed var(--border2);border-radius:6px;padding:24px 16px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative}
-#dropzone:hover,#dropzone.drag-over{border-color:var(--accent);background:rgba(77,245,196,0.04)}
-#dropzone .dz-icon{font-size:28px;margin-bottom:8px;opacity:0.4}
-#dropzone .dz-text{color:var(--text2);font-size:11px;line-height:1.6}
-#dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer}
-#model-info{padding:10px 14px;background:rgba(77,245,196,0.06);border-bottom:1px solid var(--border);display:none}
-#model-info .mi-name{font-size:12px;color:var(--accent);font-weight:600;margin-bottom:4px}
-#model-info .mi-stats{font-size:10px;color:var(--text2);line-height:1.7}
+/* Loading */
+#dropzone { display: block; margin: 14px 14px 8px; border: 1px dashed var(--border2); border-radius: 6px; padding: 20px 16px; text-align: center; cursor: pointer; transition: all .2s; }
+#dropzone:hover, body.dragging #dropzone { border-color: var(--accent); background: var(--accent-soft); }
+#dropzone:focus-within { outline: 2px solid var(--accent); }
+.dz-icon { font-size: 26px; margin-bottom: 6px; opacity: 0.45; }
+.dz-text { color: var(--text2); font-size: 11px; line-height: 1.6; }
+#file-input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+#load-sample { margin: 0 14px 14px; }
+#model-info { padding: 10px 14px; background: var(--accent-soft); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+#mi-name { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 4px; word-break: break-all; }
+#mi-stats { font-size: 10.5px; color: var(--text2); line-height: 1.7; }
+.warn { font-size: 10.5px; line-height: 1.6; color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, transparent); border-left: 2px solid var(--danger); padding: 6px 8px; margin: 6px 0; border-radius: 2px; }
+.note { font-size: 10.5px; line-height: 1.6; color: var(--text2); background: var(--bg3); padding: 6px 8px; margin: 6px 0; border-radius: 2px; }
+.note b { color: var(--text); font-weight: 600; }
 
-/* Canvas */
-#cv{display:block;width:100%;height:100%}
-#viewport-overlay{position:absolute;bottom:12px;left:12px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
-.vp-hint{font-size:10px;color:rgba(255,255,255,0.3);background:rgba(0,0,0,0.5);padding:4px 8px;border-radius:3px}
-#axis-indicator{position:absolute;top:12px;left:12px;width:60px;height:60px;pointer-events:none}
+/* Viewport */
+#cv { display: block; width: 100%; height: calc(100% - 24px); touch-action: none; cursor: grab; }
+#cv:active { cursor: grabbing; }
+#gizmo { position: absolute; top: 10px; left: 10px; width: 64px; height: 64px; pointer-events: none; }
+.vp-hint { position: absolute; bottom: 34px; left: 12px; font-size: 10px; color: var(--text3); background: var(--overlay); padding: 4px 8px; border-radius: 3px; pointer-events: none; }
+#statusbar { position: absolute; bottom: 0; left: 0; right: 0; height: 24px; background: var(--bg2); display: flex; align-items: center; padding: 0 12px; gap: 16px; font-size: 10px; color: var(--text3); border-top: 1px solid var(--border); overflow: hidden; white-space: nowrap; }
+#statusbar b { color: var(--text2); font-weight: 500; }
+#empty-state { position: absolute; inset: 0 0 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px; color: var(--text2); line-height: 1.7; }
+#empty-state h2 { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+#empty-state p { max-width: 380px; font-size: 12px; }
+body.dragging #viewport::after { content: 'Drop STL to load'; position: absolute; inset: 8px; border: 2px dashed var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 20px; color: var(--accent); background: var(--overlay); pointer-events: none; }
+#progress { position: absolute; inset: 0; background: var(--overlay); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; z-index: 10; }
+#pg-text { font-size: 12px; color: var(--text2); }
+.spinner { width: 22px; height: 22px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#toast { position: fixed; left: 50%; bottom: 40px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; background: var(--bg2); border: 1px solid var(--border2); border-radius: 5px; padding: 9px 14px; font-size: 12px; max-width: min(520px, calc(100vw - 32px)); box-shadow: 0 8px 30px rgba(0,0,0,.18); transition: all .2s; z-index: 100; }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+#toast.error { border-color: var(--danger); color: var(--danger); }
 
-/* Connector list */
-.conn-item{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 10px;margin-bottom:5px;display:grid;grid-template-columns:20px 1fr auto;align-items:center;gap:8px}
-.conn-num{font-size:10px;color:var(--text3);font-weight:600}
-.conn-pos{font-size:10px;color:var(--text2);line-height:1.5}
-.conn-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px rgba(77,245,196,0.6)}
-.empty-msg{font-size:11px;color:var(--text3);text-align:center;padding:16px 0;line-height:1.6}
+/* Right panel */
+.tab-row { display: flex; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg2); z-index: 1; }
+.tab { flex: 1; padding: 10px 8px; font-size: 11px; color: var(--text3); text-align: center; cursor: pointer; border: 0; border-bottom: 2px solid transparent; background: none; }
+.tab:hover { color: var(--text2); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: flex; flex: 1; flex-direction: column; }
+.conn-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 7px 10px; margin-bottom: 5px; display: flex; align-items: center; gap: 10px; font-size: 10.5px; }
+.conn-num { color: var(--text3); font-weight: 600; min-width: 22px; }
+.conn-pos { color: var(--text2); flex: 1; }
+.conn-isl { color: var(--accent2); font-size: 10px; }
+.empty-msg { font-size: 11px; color: var(--text3); text-align: center; padding: 16px 0; line-height: 1.6; }
+.export-btn { width: 100%; padding: 8px 10px; border-radius: 4px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-size: 11px; margin-bottom: 5px; text-align: left; transition: all .12s; }
+.export-btn:hover { background: var(--bg3); color: var(--text); }
+.export-btn.featured { border-color: var(--accent-line); color: var(--accent); background: var(--accent-soft); }
+#export-preview { font-size: 10px; color: var(--text2); line-height: 1.5; white-space: pre-wrap; word-break: break-all; max-height: 240px; overflow-y: auto; font-family: var(--font-mono); }
+.stat { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--text2); padding: 3px 0; }
+.stat span:last-child { color: var(--text); text-align: right; }
+#analysis .section-label { margin-top: 12px; }
+#analysis .section-label:first-child { margin-top: 2px; }
+.good { color: var(--good) !important; }
+.bad { color: var(--danger) !important; }
 
-/* Export panel */
-.export-btn{width:100%;padding:8px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font-mono);font-size:11px;margin-bottom:5px;text-align:left;transition:all 0.12s;display:flex;align-items:center;gap:8px}
-.export-btn:hover{border-color:var(--border2);background:var(--bg3);color:var(--text)}
-.export-btn .ebtn-icon{font-size:14px}
-.export-btn.featured{border-color:rgba(77,245,196,0.4);color:var(--accent);background:rgba(77,245,196,0.05)}
-.export-btn.featured:hover{background:rgba(77,245,196,0.1)}
-
-/* Status bar */
-#statusbar{position:absolute;bottom:0;left:0;right:0;height:24px;background:rgba(0,0,0,0.7);display:flex;align-items:center;padding:0 12px;gap:16px;font-size:10px;color:var(--text3);border-top:1px solid var(--border);pointer-events:none}
-#statusbar .sb-item{display:flex;align-items:center;gap:5px}
-#statusbar .sb-val{color:var(--text2)}
-#progress{position:absolute;inset:0;background:rgba(13,15,20,0.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:100}
-#progress .pg-text{font-size:13px;color:var(--text2)}
-#progress .pg-bar-wrap{width:240px;height:3px;background:var(--bg3);border-radius:2px}
-#progress .pg-bar{height:3px;background:var(--accent);border-radius:2px;width:0%;transition:width 0.2s}
-.tab-row{display:flex;border-bottom:1px solid var(--border)}
-.tab{flex:1;padding:9px 8px;font-size:11px;color:var(--text3);text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.12s;font-family:var(--font-mono)}
-.tab:hover{color:var(--text2)}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.tab-content{display:none;flex:1;flex-direction:column;overflow-y:auto}
-.tab-content.active{display:flex}
-
-/* Tooltip */
-.tooltip{position:absolute;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;font-size:11px;color:var(--text);pointer-events:none;z-index:50;max-width:180px;line-height:1.5}
+/* Narrow screens: viewport on top, panels stacked below. */
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  #shell { height: auto; min-height: 100dvh; }
+  #main { grid-template-columns: minmax(0, 1fr); overflow: visible; }
+  #viewport { order: -1; height: 55vh; height: 55dvh; }
+  #left-panel, #right-panel { border: 0; border-top: 1px solid var(--border); overflow: visible; }
+  #header { padding: 0 12px; gap: 8px; }
+  .badge, #reset-view { display: none; }
+  #theme { width: 118px; }
+  #theme button { padding: 5px 2px; }
+  .hide-sm { display: none; }
+  .vp-hint { display: none; }
+}
 </style>
 </head>
 <body>
 <div id="shell">
-  <div id="header">
+  <header id="header">
     <h1>Split<span>Forge</span></h1>
-    <span class="header-badge">BETA</span>
-    <div class="header-spacer"></div>
-    <button class="header-btn" onclick="resetView()">Reset view</button>
-    <button class="header-btn primary" onclick="runExportAll()">Export all ↗</button>
-  </div>
-  <div id="main">
+    <span class="badge">BETA</span>
+    <div class="spacer"></div>
+    <div class="seg" id="theme" data-seg="theme" role="group" aria-label="Theme">
+      <button data-value="system" title="Follow system setting">Auto</button>
+      <button data-value="light">Light</button>
+      <button data-value="dark">Dark</button>
+    </div>
+    <button class="btn" id="reset-view">Reset view</button>
+    <button class="btn primary" id="export-all">Export<span class="hide-sm"> all</span> ↓</button>
+  </header>
 
+  <main id="main">
     <!-- LEFT PANEL -->
-    <div id="left-panel">
-      <div id="dropzone" onclick="document.getElementById('file-input').click()">
-        <div class="dz-icon">⬡</div>
-        <div class="dz-text">Drop STL file here<br>or click to browse</div>
-        <input type="file" id="file-input" accept=".stl" onchange="loadSTLFile(this)">
-      </div>
-      <div id="model-info">
-        <div class="mi-name" id="mi-name">—</div>
-        <div class="mi-stats" id="mi-stats"></div>
+    <aside id="left-panel">
+      <label id="dropzone">
+        <div class="dz-icon" aria-hidden="true">⬡</div>
+        <div class="dz-text">Drop an STL anywhere<br>or click to browse</div>
+        <input type="file" id="file-input" accept=".stl,model/stl">
+      </label>
+      <button class="btn small" id="load-sample">Try the sample model</button>
+      <div id="model-info" hidden>
+        <div id="mi-name"></div>
+        <div id="mi-stats"></div>
       </div>
 
-      <div class="panel-section">
-        <div class="section-label">Split plane</div>
-        <div class="btn-group">
-          <div class="seg-btn warn" id="ax-x" onclick="setAxis('x')">X axis</div>
-          <div class="seg-btn warn" id="ax-y" onclick="setAxis('y')">Y axis</div>
-          <div class="seg-btn warn on" id="ax-z" onclick="setAxis('z')">Z axis</div>
+      <section class="panel-section">
+        <div class="section-label">Cut plane</div>
+        <div class="seg warm" data-seg="axis" role="group" aria-label="Cut axis">
+          <button data-value="x">X axis</button>
+          <button data-value="y">Y axis</button>
+          <button data-value="z" class="on">Z axis</button>
         </div>
         <div class="ctrl-row">
           <span class="ctrl-label">Position</span>
-          <input type="range" id="sp" min="1" max="99" value="50" oninput="onCtrl()">
-          <span class="ctrl-val" id="sp-v">50%</span>
+          <input type="range" id="cut-pct" min="0.5" max="99.5" step="0.1" value="50" aria-label="Cut position (percent)">
+          <span class="ctrl-val" id="cut-pct-v">50%</span>
         </div>
-        <div style="font-size:10px;color:var(--text3);margin-top:4px" id="split-abs-pos">Split at: —</div>
-      </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">Exact (mm)</span>
+          <input type="number" id="cut-mm" step="0.1" aria-label="Cut position (mm)">
+        </div>
+        <div class="hint" id="cut-info">Load a model to start.</div>
+      </section>
 
-      <div class="panel-section">
-        <div class="section-label">Connector geometry</div>
-        <div class="ctrl-row">
-          <span class="ctrl-label">Diameter</span>
-          <input type="range" id="cs" min="1" max="15" value="5" step="0.5" oninput="onCtrl()">
-          <span class="ctrl-val" id="cs-v">5mm</span>
+      <section class="panel-section">
+        <div class="section-label">Connectors</div>
+        <div class="seg" data-seg="type" role="group" aria-label="Connector type">
+          <button data-value="peg" class="on">Peg</button>
+          <button data-value="snap">Snap</button>
+          <button data-value="dowel">Dowel</button>
+          <button data-value="none">None</button>
         </div>
-        <div class="ctrl-row">
-          <span class="ctrl-label">Depth</span>
-          <input type="range" id="cd" min="1" max="12" value="3" step="0.5" oninput="onCtrl()">
-          <span class="ctrl-val" id="cd-v">3mm</span>
+        <div class="hint" id="type-hint" style="margin:0 0 10px"></div>
+        <div id="conn-params">
+          <div class="seg" data-seg="pattern" role="group" aria-label="Connector pattern">
+            <button data-value="center">Center</button>
+            <button data-value="corners" class="on">Corners</button>
+            <button data-value="mid">+ Mids</button>
+            <button data-value="grid">Grid</button>
+          </div>
+          <div class="ctrl-row" id="grid-row" hidden>
+            <span class="ctrl-label">Grid</span>
+            <input type="range" id="grid-n" min="2" max="6" step="1" value="3">
+            <span class="ctrl-val" id="grid-n-v"></span>
+          </div>
+          <div class="ctrl-row">
+            <span class="ctrl-label">Diameter</span>
+            <input type="range" id="diameter" min="2" max="20" step="0.5" value="6">
+            <span class="ctrl-val" id="diameter-v"></span>
+          </div>
+          <div class="ctrl-row">
+            <span class="ctrl-label">Depth</span>
+            <input type="range" id="depth" min="2" max="20" step="0.5" value="6">
+            <span class="ctrl-val" id="depth-v"></span>
+          </div>
+          <div class="ctrl-row">
+            <span class="ctrl-label">Clearance</span>
+            <input type="range" id="clearance" min="0" max="0.6" step="0.05" value="0.2">
+            <span class="ctrl-val" id="clearance-v"></span>
+          </div>
+          <div class="ctrl-row">
+            <span class="ctrl-label">Edge margin</span>
+            <input type="range" id="margin" min="0.5" max="10" step="0.5" value="2">
+            <span class="ctrl-val" id="margin-v"></span>
+          </div>
+          <div id="stud-side-row">
+            <div class="ctrl-row" style="margin-bottom:4px"><span class="ctrl-label">Pegs on</span></div>
+            <div class="seg" data-seg="stud-side" role="group" aria-label="Part that carries the pegs">
+              <button data-value="neg" class="on">Bottom</button>
+              <button data-value="pos">Top</button>
+            </div>
+          </div>
+          <div class="hint">Clearance is the radial gap between peg and socket. Connectors move to fit inside the cut, and any spot without room for the socket is skipped.</div>
         </div>
-        <div class="ctrl-row">
-          <span class="ctrl-label">Wall inset</span>
-          <input type="range" id="ci" min="1" max="20" value="5" step="0.5" oninput="onCtrl()">
-          <span class="ctrl-val" id="ci-v">5mm</span>
-        </div>
-        <div class="ctrl-row">
-          <span class="ctrl-label">Tolerance</span>
-          <input type="range" id="ct" min="0" max="1" value="0.2" step="0.05" oninput="onCtrl()">
-          <span class="ctrl-val" id="ct-v">0.2mm</span>
-        </div>
-      </div>
+      </section>
 
-      <div class="panel-section">
-        <div class="section-label">Pattern</div>
-        <div class="btn-group">
-          <div class="seg-btn on" id="pt-corners" onclick="setPattern('corners')">Corners</div>
-          <div class="seg-btn" id="pt-mid" onclick="setPattern('mid')">+ Midpoints</div>
-          <div class="seg-btn" id="pt-grid" onclick="setPattern('grid')">Grid</div>
+      <section class="panel-section grow">
+        <div class="section-label">View</div>
+        <div class="seg" data-seg="display" role="group" aria-label="Display mode">
+          <button data-value="solid" class="on">Solid</button>
+          <button data-value="wire">Wire</button>
+          <button data-value="xray">X-ray</button>
         </div>
-        <div class="ctrl-row" id="grid-row" style="display:none">
-          <span class="ctrl-label">Grid N</span>
-          <input type="range" id="gn" min="2" max="5" value="2" step="1" oninput="onCtrl()">
-          <span class="ctrl-val" id="gn-v">2×2</span>
-        </div>
-      </div>
-
-      <div class="panel-section" style="flex:1">
-        <div class="section-label">Display</div>
-        <div class="btn-group">
-          <div class="seg-btn on" id="dv-solid" onclick="setDisplayMode('solid')">Solid</div>
-          <div class="seg-btn" id="dv-wire" onclick="setDisplayMode('wire')">Wire</div>
-          <div class="seg-btn" id="dv-xray" onclick="setDisplayMode('xray')">X-ray</div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">Explode</span>
+          <input type="range" id="explode" min="0" max="100" value="25">
+          <span class="ctrl-val" id="explode-v"></span>
         </div>
         <div class="ctrl-row">
           <span class="ctrl-label">Opacity</span>
-          <input type="range" id="op" min="10" max="100" value="75" oninput="onCtrl()">
-          <span class="ctrl-val" id="op-v">75%</span>
+          <input type="range" id="opacity" min="20" max="100" value="100">
+          <span class="ctrl-val" id="opacity-v"></span>
         </div>
-      </div>
-    </div>
+      </section>
+    </aside>
 
     <!-- VIEWPORT -->
     <div id="viewport">
-      <canvas id="cv"></canvas>
-      <canvas id="axis-indicator"></canvas>
-      <div id="viewport-overlay">
-        <div class="vp-hint">Left drag: rotate  |  Right drag / scroll: zoom  |  Middle drag: pan</div>
+      <canvas id="cv" aria-label="3D view of the split model"></canvas>
+      <canvas id="gizmo" aria-hidden="true"></canvas>
+      <div class="vp-hint">Drag: rotate · Right drag / Shift: pan · Scroll: zoom · Double-click: reset</div>
+      <div id="empty-state">
+        <h2>Split a model into printable parts</h2>
+        <p>Drop an STL file here. SplitForge cuts it along a plane, caps both faces and adds pegs, snap-fits or dowel holes so the parts line up when you glue or press them together. Everything stays in your browser.</p>
+        <button class="btn primary" id="empty-sample">Try the sample model</button>
       </div>
       <div id="statusbar">
-        <div class="sb-item">Triangles: <span class="sb-val" id="sb-tris">—</span></div>
-        <div class="sb-item">Bounds: <span class="sb-val" id="sb-bounds">—</span></div>
-        <div class="sb-item">Connectors: <span class="sb-val" id="sb-conns">0</span></div>
-        <div class="sb-item">Split: <span class="sb-val" id="sb-split">—</span></div>
+        <span class="hide-sm">Triangles <b id="sb-tris">—</b></span>
+        <span class="hide-sm">Size <b id="sb-size">—</b></span>
+        <span>Cut <b id="sb-cut">—</b></span>
+        <span>Connectors <b id="sb-conns">0</b></span>
+        <span class="hide-sm">Build <b id="sb-time">—</b></span>
       </div>
-      <div id="progress">
-        <div class="pg-text" id="pg-text">Processing...</div>
-        <div class="pg-bar-wrap"><div class="pg-bar" id="pg-bar"></div></div>
+      <div id="progress" hidden>
+        <div class="spinner"></div>
+        <div id="pg-text">Processing…</div>
       </div>
     </div>
 
     <!-- RIGHT PANEL -->
-    <div id="right-panel">
-      <div class="tab-row">
-        <div class="tab active" onclick="switchTab('connectors')">Connectors</div>
-        <div class="tab" onclick="switchTab('export')">Export</div>
-        <div class="tab" onclick="switchTab('analysis')">Analysis</div>
+    <aside id="right-panel">
+      <div class="tab-row" role="tablist">
+        <button class="tab active" role="tab" data-tab="connectors" aria-selected="true">Connectors</button>
+        <button class="tab" role="tab" data-tab="export" aria-selected="false">Export</button>
+        <button class="tab" role="tab" data-tab="analysis" aria-selected="false">Analysis</button>
       </div>
 
-      <!-- CONNECTORS TAB -->
-      <div class="tab-content active" id="tab-connectors">
-        <div class="panel-section" style="flex:1">
+      <div class="tab-content" id="tab-connectors" role="tabpanel">
+        <div class="panel-section grow">
           <div class="section-label">Placed connectors</div>
-          <div id="conn-list"><div class="empty-msg">Load an STL or adjust split plane<br>to generate connectors</div></div>
+          <div id="conn-notes"></div>
+          <div id="conn-list"><div class="empty-msg">Load an STL to place connectors.</div></div>
         </div>
       </div>
 
-      <!-- EXPORT TAB -->
-      <div class="tab-content" id="tab-export">
+      <div class="tab-content" id="tab-export" role="tabpanel" hidden>
         <div class="panel-section">
-          <div class="section-label">STL export</div>
-          <button class="export-btn featured" onclick="exportSTL('top')"><span class="ebtn-icon">⬡</span>Top part (.stl)</button>
-          <button class="export-btn featured" onclick="exportSTL('bottom')"><span class="ebtn-icon">⬡</span>Bottom part (.stl)</button>
-          <button class="export-btn" onclick="exportSTLBoth()"><span class="ebtn-icon">⬡</span>Both parts (zip)</button>
+          <div class="section-label">Parts</div>
+          <label class="check"><input type="checkbox" id="orient" checked>Orient for printing (cut face on the bed; peg parts cut face up)</label>
+          <button class="export-btn featured" data-export="pos" id="btn-pos">Top part (.stl)</button>
+          <button class="export-btn featured" data-export="neg" id="btn-neg">Bottom part (.stl)</button>
+          <button class="export-btn" data-export="pins" id="btn-pins" hidden>Dowel pins (.stl)</button>
+          <button class="export-btn" data-export="all">Everything (.zip)</button>
         </div>
         <div class="panel-section">
-          <div class="section-label">OpenSCAD export</div>
-          <button class="export-btn" onclick="exportOpenSCAD()"><span class="ebtn-icon">◈</span>Full assembly (.scad)</button>
-          <button class="export-btn" onclick="exportOpenSCADTop()"><span class="ebtn-icon">◈</span>Top part (.scad)</button>
-          <button class="export-btn" onclick="exportOpenSCADBottom()"><span class="ebtn-icon">◈</span>Bottom part (.scad)</button>
+          <div class="section-label">Other formats</div>
+          <button class="export-btn" data-export="scad">Parametric OpenSCAD (.scad)</button>
+          <button class="export-btn" data-export="json">Connector positions (.json)</button>
+          <button class="export-btn" data-export="csv">Connector positions (.csv)</button>
         </div>
-        <div class="panel-section">
-          <div class="section-label">Data export</div>
-          <button class="export-btn" onclick="exportJSON()"><span class="ebtn-icon">{ }</span>Connector positions (JSON)</button>
-          <button class="export-btn" onclick="exportCSV()"><span class="ebtn-icon">≡</span>Connector positions (CSV)</button>
-        </div>
-        <div class="panel-section" style="flex:1">
-          <div class="section-label">Preview</div>
-          <pre id="export-preview" style="font-size:10px;color:var(--text2);line-height:1.5;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto">— select an export to preview —</pre>
+        <div class="panel-section grow">
+          <div class="section-label">Last export</div>
+          <pre id="export-preview">Nothing exported yet.</pre>
         </div>
       </div>
 
-      <!-- ANALYSIS TAB -->
-      <div class="tab-content" id="tab-analysis">
+      <div class="tab-content" id="tab-analysis" role="tabpanel" hidden>
         <div class="panel-section">
-          <div class="section-label">Overhang analysis</div>
-          <button class="export-btn" onclick="runOverhangAnalysis()"><span class="ebtn-icon">▲</span>Detect overhangs &gt;45°</button>
-          <div id="overhang-result" class="empty-msg">Run analysis to detect faces<br>requiring internal supports</div>
+          <div class="section-label">Overhangs</div>
+          <label class="check"><input type="checkbox" id="show-overhangs">Highlight faces steeper than 45° (in print orientation)</label>
         </div>
-        <div class="panel-section" style="flex:1">
-          <div class="section-label">Split quality</div>
-          <div id="split-quality"><div class="empty-msg">Load model to analyse</div></div>
-        </div>
+        <div class="panel-section grow" id="analysis"></div>
       </div>
-
-    </div>
-  </div>
+    </aside>
+  </main>
 </div>
+<div id="toast" role="status" aria-live="polite"></div>
 
-<script src="src/stl-parser.js"></script>
-<script src="src/geometry.js"></script>
+<script src="src/vendor/earcut.js"></script>
+<script src="src/stl.js"></script>
+<script src="src/split.js"></script>
+<script src="src/sample.js"></script>
 <script src="src/renderer.js"></script>
-<script src="src/connectors.js"></script>
 <script src="src/exporters.js"></script>
 <script src="src/app.js"></script>
 </body>
