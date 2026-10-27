@@ -1,6 +1,6 @@
 # SplitForge
 
-<p align="center"><img src="docs/icon.png" width="128" alt="SplitForge icon"></p>
+<img src="docs/icon.png" width="128" alt="SplitForge icon">
 
 **Split 3D models into printable parts that fit back together.**
 
