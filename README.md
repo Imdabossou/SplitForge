@@ -1,5 +1,7 @@
 # SplitForge
 
+<p align="center"><img src="docs/icon.png" width="128" alt="SplitForge icon"></p>
+
 **Split 3D models into printable parts that fit back together.**
 
 Is the model too big for your printer, or would it print better in two halves? Drop the STL into SplitForge, choose where to cut, and it gives you two watertight parts with pegs, snap-fits or dowel holes already in place. It runs entirely in your browser: nothing is uploaded and nothing needs installing.
