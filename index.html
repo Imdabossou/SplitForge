@@ -10,49 +10,46 @@
   // Apply the saved theme before first paint to avoid a flash of the wrong one.
   try { const t = localStorage.getItem('splitforge-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch {}
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
   color-scheme: light;
-  --bg: #f3f4f7; --bg2: #ffffff; --bg3: #eceef3;
-  --border: rgba(20, 24, 36, 0.09); --border2: rgba(20, 24, 36, 0.18);
-  --accent: #0b8f72; --accent-soft: rgba(11, 143, 114, 0.1); --accent-line: rgba(11, 143, 114, 0.45);
-  --accent2: #b86200; --accent2-soft: rgba(184, 98, 0, 0.1); --accent2-line: rgba(184, 98, 0, 0.45);
-  --text: #1b1e27; --text2: #535a6e; --text3: #858b9e;
+  --bg: #f4f4f4; --bg2: #ffffff; --bg3: #ececec;
+  --border: rgba(0, 0, 0, 0.09); --border2: rgba(0, 0, 0, 0.18);
+  --accent: #1e1e1e; --accent-soft: rgba(30, 30, 30, 0.1); --accent-line: rgba(30, 30, 30, 0.45);
+  --accent2: #5a5a5a; --accent2-soft: rgba(90, 90, 90, 0.1); --accent2-line: rgba(90, 90, 90, 0.45);
+  --text: #1e1e1e; --text2: #5a5a5a; --text3: #8a8a8a;
   --danger: #c93a26; --good: #1a8a55;
-  --overlay: rgba(243, 244, 247, 0.85);
-  --vp-bg: #e6e9ef; --part-pos: #3b8ed8; --part-neg: #e08a2c; --plane: #d39b00;
-  --section: #0b8f72; --grid: #6b7285; --overhang: #e5402a;
-  --font-display: 'Syne', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --overlay: rgba(244, 244, 244, 0.85);
+  --vp-bg: #e8e8e8; --part-pos: #3b8ed8; --part-neg: #e08a2c; --plane: #d39b00;
+  --section: #1e1e1e; --grid: #707070; --overhang: #e5402a;
+  --font-display: system-ui, sans-serif;
+  --font-mono: system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0d0f14; --bg2: #13161e; --bg3: #1a1e2a;
+    --bg: #111111; --bg2: #181818; --bg3: #202020;
     --border: rgba(255, 255, 255, 0.07); --border2: rgba(255, 255, 255, 0.14);
-    --accent: #4df5c4; --accent-soft: rgba(77, 245, 196, 0.1); --accent-line: rgba(77, 245, 196, 0.45);
-    --accent2: #f5a84d; --accent2-soft: rgba(245, 168, 77, 0.1); --accent2-line: rgba(245, 168, 77, 0.45);
-    --text: #e8eaf0; --text2: #9297ad; --text3: #5d6278;
+    --accent: #e8e8e8; --accent-soft: rgba(232, 232, 232, 0.1); --accent-line: rgba(232, 232, 232, 0.45);
+    --accent2: #aaaaaa; --accent2-soft: rgba(170, 170, 170, 0.1); --accent2-line: rgba(170, 170, 170, 0.45);
+    --text: #e8e8e8; --text2: #9c9c9c; --text3: #6e6e6e;
     --danger: #ff6b55; --good: #4df5a0;
-    --overlay: rgba(13, 15, 20, 0.85);
-    --vp-bg: #0d0f14; --part-pos: #4fb3e8; --part-neg: #f0a64d; --plane: #ffc740;
-    --section: #4df5c4; --grid: #8a8fa8; --overhang: #ff4d3a;
+    --overlay: rgba(17, 17, 17, 0.85);
+    --vp-bg: #111111; --part-pos: #4fb3e8; --part-neg: #f0a64d; --plane: #ffc740;
+    --section: #e8e8e8; --grid: #909090; --overhang: #ff4d3a;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0d0f14; --bg2: #13161e; --bg3: #1a1e2a;
+  --bg: #111111; --bg2: #181818; --bg3: #202020;
   --border: rgba(255, 255, 255, 0.07); --border2: rgba(255, 255, 255, 0.14);
-  --accent: #4df5c4; --accent-soft: rgba(77, 245, 196, 0.1); --accent-line: rgba(77, 245, 196, 0.45);
-  --accent2: #f5a84d; --accent2-soft: rgba(245, 168, 77, 0.1); --accent2-line: rgba(245, 168, 77, 0.45);
-  --text: #e8eaf0; --text2: #9297ad; --text3: #5d6278;
+  --accent: #e8e8e8; --accent-soft: rgba(232, 232, 232, 0.1); --accent-line: rgba(232, 232, 232, 0.45);
+  --accent2: #aaaaaa; --accent2-soft: rgba(170, 170, 170, 0.1); --accent2-line: rgba(170, 170, 170, 0.45);
+  --text: #e8e8e8; --text2: #9c9c9c; --text3: #6e6e6e;
   --danger: #ff6b55; --good: #4df5a0;
-  --overlay: rgba(13, 15, 20, 0.85);
-  --vp-bg: #0d0f14; --part-pos: #4fb3e8; --part-neg: #f0a64d; --plane: #ffc740;
-  --section: #4df5c4; --grid: #8a8fa8; --overhang: #ff4d3a;
+  --overlay: rgba(17, 17, 17, 0.85);
+  --vp-bg: #111111; --part-pos: #4fb3e8; --part-neg: #f0a64d; --plane: #ffc740;
+  --section: #e8e8e8; --grid: #909090; --overhang: #ff4d3a;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
